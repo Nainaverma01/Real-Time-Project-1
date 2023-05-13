@@ -1,0 +1,97 @@
+create a git repo called Real-Time-Project-1
+create a file inside called index.html
+
+Now integrate github with Jenkins:
+add webhook:
+Payload URL: http://3.87.91.153:8080/github-webhook/
+Content type: application/json
+secrets: get token from jenkins (dashboard/cloud/config)
+116ebe07e57c2a948f390d8365b945acac
+
+on jenkins server putty:
+install git: 
+[root@ip-172-31-84-238 ~]# yum install git
+
+Dashboard>manage jenkins>configure system
+
+SSH Servers
+name: Jenkins
+Hostname: Private IPv4 addresses jenkins
+
+
+On jenkins Server UI:
+download plugin: publish over ssh
+1.create a project in jenkins name Realtime
+2.configure it with git url: https://github.com/Nainaverma01/Real-Time-Project-1.git
+   Also select github hook trigger for GITSCM polling.
+3.goto jenkins Dashboard>manage jenkins>configure system
+SSH Servers
+name: Jenkins
+Hostname: Private IPv4 addresses
+apply>save
+now run the job after configuring git url you will see on jenkins server that
+[root@ip-172-31-84-238 ~]# cd /var/lib/jenkins
+[root@ip-172-31-84-238 jenkins]# cd workspace
+[root@ip-172-31-84-238 workspace]# ls
+Realtime-Project
+[root@ip-172-31-84-238 workspace]# cd Realtime-Project/
+[root@ip-172-31-84-238 Realtime-Project]# ls
+index.html  README.md
+[root@ip-172-31-84-238 Realtime-Project]# pwd
+/var/lib/jenkins/workspace/Realtime-Project
+
+3.specify branches to build as 'main'
+4.Under Build Steps > Send files or execute commands over SSH (done so to tranfer the compliation output from jenkins server to ansible server)
+ exec command: rsync -avh /var/lib/jenkins/workspace/Realtime-Project/*.html root@172.31.81.248:/opt/index.html  (here we mention Private IPv4 addresses of ansible server)
+5. now Run the job
+6. now you will see index.html file in on ansible server
+
+[root@ip-172-31-81-248 ~]# cd /opt
+[root@ip-172-31-81-248 opt]# ls
+aws  rh
+[root@ip-172-31-81-248 opt]# ls
+aws  index.html  rh
+
+7. Now we will directly deploy from jenkins to webserver via using ansible playbook(already integrated and present on ansible server)
+as you can see on ansible server:
+[root@ip-172-31-81-248 sourcecode]# vi playbook.yml ()
+[root@ip-172-31-81-248 sourcecode]# cd /sourcecode
+[root@ip-172-31-81-248 sourcecode]# ls
+playbook.yml
+[root@ip-172-31-81-248 sourcecode]# cat playbook.yml
+- hosts: all
+  task:
+    - copy:
+        src: /opt/index.html
+        dest: /var/www/html
+8. reconfigure or re-edit the jenkins project
+goto jenkins Dashboard>manage jenkins>configure system
+SSH Servers
+name: Ansible
+Hostname: Private IPv4 addresses of ansible
+password: root/root
+goto post build actions: send build artifacts over ssh
+ssh server: ansible
+exec command:ansible-playbook /sourcecode/playbook.yml
+
+Your playbook would run succesfully in webserver
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Now intergrate git with Developer server:
+Connect to developer server using ppk key and ipv4 address
+[ec2-user@ip-172-31-93-55 ~]$ sudo su
+[root@ip-172-31-93-55 ec2-user]# yum install git
+[root@ip-172-31-93-55 ec2-user]# git clone https://github.com/Nainaverma01/Real-Time-Project-1.git
+[root@ip-172-31-93-55 ec2-user]# ls
+Real-Time-Project-1
+[root@ip-172-31-93-55 ec2-user]# cd Real-Time-Project-1/
+[root@ip-172-31-93-55 Real-Time-Project-1]# ls
+index.html  README.md
+[root@ip-172-31-93-55 Real-Time-Project-1]# vi index.html
+[root@ip-172-31-93-55 Real-Time-Project-1]# git commit -m "f1" index.html
+[root@ip-172-31-93-55 Real-Time-Project-1]# git commit --amend --reset-author
+[root@ip-172-31-93-55 Real-Time-Project-1]# git push origin main
+here give your git username and token(from Settings>Developer settings>personal access token)
+
+now Automatically job would run on your jenkins server and changes are visible
+goto your browser and connect through web server ipv4 public address.
+

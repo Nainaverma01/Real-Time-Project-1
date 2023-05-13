@@ -1,0 +1,74 @@
+login as: ec2-user
+[ec2-user@ip-172-31-81-154 ~]$ sudo su
+[root@ip-172-31-81-154 ec2-user]# amazon-linux-extras install ansible2
+[root@ip-172-31-21-188 ec2-user]# ansible --version
+ansible 2.9.23
+  config file = /etc/ansible/ansible.cfg
+(goto inventory file:/etc/ansible/ansible.cfg)
+[root@ip-172-31-21-188 ec2-user]# vi /etc/ansible/ansible.cfg
+[web]
+172.31.26.85
+
+make passwordless connection on webserver:
+[root@ip-172-31-21-188 ec2-user]# ssh-keygen
+4 x enter
+[root@ip-172-31-21-188 ec2-user]# ssh-copy-id -i root@<webserver private ipaddress>
+[root@ip-172-31-21-188 ec2-user]# ssh-copy-id -i root@172.31.26.85
+/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/root/.ssh/id_rsa.pub"
+/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+root@172.31.26.85's password:
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh 'root@172.31.26.85'"
+and check to make sure that only the key(s) you wanted were added.
+
+[root@ip-172-31-21-188 ec2-user]# ssh root@172.31.26.85
+Last login: Wed May  3 11:48:18 2023
+
+       __|  __|_  )
+       _|  (     /   Amazon Linux 2 AMI
+      ___|\___|___|
+
+https://aws.amazon.com/amazon-linux-2/
+1 package(s) needed for security, out of 1 available
+Run "sudo yum update" to apply all updates.
+
+
+configure ansible with jenkins:
+[ec2-user@ip-172-31-21-188 ~]$ sudo su
+[root@ip-172-31-21-188 ec2-user]# passwd root
+Changing password for user root.
+New password:
+BAD PASSWORD: The password is shorter than 8 characters
+Retype new password:
+passwd: all authentication tokens updated successfully.
+
+#####password for root is root#############
+[root@ip-172-31-21-188 ec2-user]# vi /etc/ssh/sshd_config
+PermitRootLogin yes
+PasswordAuthentication yes
+[root@ip-172-31-26-85 ~]# systemctl restart sshd
+[root@ip-172-31-21-188 ec2-user]# systemctl restart sshd
+
+create a play on ansible:
+[root@ip-172-31-21-188 sourcecode]# vi playbook.yml
+[root@ip-172-31-21-188 sourcecode]# cat playbook.yml
+- hosts: all
+  tasks:
+      - copy:
+          src: /opt/index.html
+          dest: /var/www/html
+
+
+
+after running the job on jenkins we could see index.html has been copied to ansible server:
+
+[root@ip-172-31-21-188 ~]# cd /opt
+[root@ip-172-31-21-188 opt]# ls
+aws  index.html  rh
+
+
+
+
